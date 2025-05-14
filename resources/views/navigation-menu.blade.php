@@ -1,218 +1,204 @@
-<nav x-data="{ open: false }" class="bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700">
-    <!-- Primary Navigation Menu -->
+<nav x-data="{ open: false }"
+     class="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+    
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="flex justify-between h-16">
-            <div class="flex">
-                <!-- Logo -->
-                <div class="shrink-0 flex items-center">
-                    <a href="{{ route('dashboard') }}">
-                        <x-application-mark class="block h-9 w-auto" />
-                    </a>
-                </div>
+        <div class="flex justify-between h-16 items-center">
+            {{-- Logo --}}
+            <div class="flex items-center">
+                <a href="{{ route('dashboard') }}" class="flex items-center gap-2">
+                    <x-application-mark class="block h-9 w-auto" />
+                    <span class="font-semibold text-gray-900 dark:text-white text-lg hidden md:block">SisMaderera</span>
+                </a>
+            </div>
 
-                <!-- Navigation Links -->
-                <div class="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex">
-                    <x-nav-link href="{{ route('dashboard') }}" :active="request()->routeIs('dashboard')">
-                        {{ __('Dashboard') }}
+            {{-- Links Principales --}}
+            <div class="hidden space-x-4 md:flex md:ml-6">
+                <x-nav-link href="{{ route('dashboard') }}" :active="request()->routeIs('dashboard')">
+                    <x-heroicon-o-home class="w-5 h-5 me-1" />
+                    <span>Inicio</span>
+                </x-nav-link>
+
+                <x-nav-link href="{{ route('ventas.index') }}" :active="request()->routeIs('ventas.*')">
+                    <x-heroicon-o-shopping-cart class="w-5 h-5 me-1" />
+                    <span>Ventas</span>
+                </x-nav-link>
+
+                <x-nav-link href="{{ route('inventario.index') }}" :active="request()->routeIs('inventario.*')">
+                    <x-heroicon-o-cube class="w-5 h-5 me-1" />
+                    <span>Inventario</span>
+                </x-nav-link>
+
+                <x-nav-link href="{{ route('reportes.index') }}" :active="request()->routeIs('reportes.*')">
+                    <x-heroicon-o-chart-bar class="w-5 h-5 me-1" />
+                    <span>Reportes</span>
+                </x-nav-link>
+
+                @if(Auth::user()->hasAccessTo('usuarios') || Auth::user()->role === 'jefe')
+                    <x-nav-link href="{{ route('usuarios.index') }}" :active="request()->routeIs('usuarios.*')">
+                        <x-heroicon-o-users class="w-5 h-5 me-1" />
+                        <span>Usuarios</span>
                     </x-nav-link>
-                </div>
-            </div>
-
-            <div class="hidden sm:flex sm:items-center sm:ms-6">
-                <!-- Teams Dropdown -->
-                @if (Laravel\Jetstream\Jetstream::hasTeamFeatures())
-                    <div class="ms-3 relative">
-                        <x-dropdown align="right" width="60">
-                            <x-slot name="trigger">
-                                <span class="inline-flex rounded-md">
-                                    <button type="button" class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800 hover:text-gray-700 dark:hover:text-gray-300 focus:outline-none focus:bg-gray-50 dark:focus:bg-gray-700 active:bg-gray-50 dark:active:bg-gray-700 transition ease-in-out duration-150">
-                                        {{ Auth::user()->currentTeam->name }}
-
-                                        <svg class="ms-2 -me-0.5 size-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                                            <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 15L12 18.75 15.75 15m-7.5-6L12 5.25 15.75 9" />
-                                        </svg>
-                                    </button>
-                                </span>
-                            </x-slot>
-
-                            <x-slot name="content">
-                                <div class="w-60">
-                                    <!-- Team Management -->
-                                    <div class="block px-4 py-2 text-xs text-gray-400">
-                                        {{ __('Manage Team') }}
-                                    </div>
-
-                                    <!-- Team Settings -->
-                                    <x-dropdown-link href="{{ route('teams.show', Auth::user()->currentTeam->id) }}">
-                                        {{ __('Team Settings') }}
-                                    </x-dropdown-link>
-
-                                    @can('create', Laravel\Jetstream\Jetstream::newTeamModel())
-                                        <x-dropdown-link href="{{ route('teams.create') }}">
-                                            {{ __('Create New Team') }}
-                                        </x-dropdown-link>
-                                    @endcan
-
-                                    <!-- Team Switcher -->
-                                    @if (Auth::user()->allTeams()->count() > 1)
-                                        <div class="border-t border-gray-200 dark:border-gray-600"></div>
-
-                                        <div class="block px-4 py-2 text-xs text-gray-400">
-                                            {{ __('Switch Teams') }}
-                                        </div>
-
-                                        @foreach (Auth::user()->allTeams() as $team)
-                                            <x-switchable-team :team="$team" />
-                                        @endforeach
-                                    @endif
-                                </div>
-                            </x-slot>
-                        </x-dropdown>
-                    </div>
                 @endif
-
-                <!-- Settings Dropdown -->
-                <div class="ms-3 relative">
-                    <x-dropdown align="right" width="48">
-                        <x-slot name="trigger">
-                            @if (Laravel\Jetstream\Jetstream::managesProfilePhotos())
-                                <button class="flex text-sm border-2 border-transparent rounded-full focus:outline-none focus:border-gray-300 transition">
-                                    <img class="size-8 rounded-full object-cover" src="{{ Auth::user()->profile_photo_url }}" alt="{{ Auth::user()->name }}" />
-                                </button>
-                            @else
-                                <span class="inline-flex rounded-md">
-                                    <button type="button" class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800 hover:text-gray-700 dark:hover:text-gray-300 focus:outline-none focus:bg-gray-50 dark:focus:bg-gray-700 active:bg-gray-50 dark:active:bg-gray-700 transition ease-in-out duration-150">
-                                        {{ Auth::user()->name }}
-
-                                        <svg class="ms-2 -me-0.5 size-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                                            <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
-                                        </svg>
-                                    </button>
-                                </span>
-                            @endif
-                        </x-slot>
-
-                        <x-slot name="content">
-                            <!-- Account Management -->
-                            <div class="block px-4 py-2 text-xs text-gray-400">
-                                {{ __('Manage Account') }}
-                            </div>
-
-                            <x-dropdown-link href="{{ route('profile.show') }}">
-                                {{ __('Profile') }}
-                            </x-dropdown-link>
-
-                            @if (Laravel\Jetstream\Jetstream::hasApiFeatures())
-                                <x-dropdown-link href="{{ route('api-tokens.index') }}">
-                                    {{ __('API Tokens') }}
-                                </x-dropdown-link>
-                            @endif
-
-                            <div class="border-t border-gray-200 dark:border-gray-600"></div>
-
-                            <!-- Authentication -->
-                            <form method="POST" action="{{ route('logout') }}" x-data>
-                                @csrf
-
-                                <x-dropdown-link href="{{ route('logout') }}"
-                                         @click.prevent="$root.submit();">
-                                    {{ __('Log Out') }}
-                                </x-dropdown-link>
-                            </form>
-                        </x-slot>
-                    </x-dropdown>
-                </div>
             </div>
 
-            <!-- Hamburger -->
-            <div class="-me-2 flex items-center sm:hidden">
-                <button @click="open = ! open" class="inline-flex items-center justify-center p-2 rounded-md text-gray-400 dark:text-gray-500 hover:text-gray-500 dark:hover:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-900 focus:outline-none focus:bg-gray-100 dark:focus:bg-gray-900 focus:text-gray-500 dark:focus:text-gray-400 transition duration-150 ease-in-out">
-                    <svg class="size-6" stroke="currentColor" fill="none" viewBox="0 0 24 24">
-                        <path :class="{'hidden': open, 'inline-flex': ! open }" class="inline-flex" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
-                        <path :class="{'hidden': ! open, 'inline-flex': open }" class="hidden" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            {{-- Dark Mode + Usuario --}}
+            <div class="hidden sm:flex sm:items-center gap-3">
+                {{-- Botón modo claro/oscuro --}}
+                <button
+                    x-data="{ modo: document.documentElement.classList.contains('dark') ? 'oscuro' : 'claro' }"
+                    @click="
+                        modo = (modo === 'oscuro') ? 'claro' : 'oscuro';
+                        localStorage.setItem('modo', modo);
+                        document.documentElement.classList.toggle('dark');
+                    "
+                    class="inline-flex items-center justify-center text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md p-2 transition focus:outline-none focus:ring focus:ring-blue-500"
+                >
+                    <x-heroicon-o-sun class="w-5 h-5 hidden dark:block" />
+                    <x-heroicon-o-moon class="w-5 h-5 block dark:hidden" />
+                </button>
+
+
+                {{-- Dropdown de usuario --}}
+                <x-dropdown align="right" width="48">
+                    <x-slot name="trigger">
+                        <button class="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-gray-100 bg-white dark:bg-gray-800 rounded-md transition">
+                            <div class="flex items-center gap-2">
+                                <div class="h-8 w-8 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-gray-600 dark:text-gray-300">
+                                    {{ substr(Auth::user()->name, 0, 1) }}
+                                </div>
+                                <div class="hidden md:block">
+                                    <span>{{ Auth::user()->name }}</span>
+                                    <span class="text-xs block text-gray-500 dark:text-gray-400">{{ ucfirst(Auth::user()->role) }}</span>
+                                </div>
+                            </div>
+                            <x-heroicon-o-chevron-down class="w-4 h-4 ml-2" />
+                        </button>
+                    </x-slot>
+
+                    <x-slot name="content">
+                        <x-dropdown-link href="{{ route('profile.show') }}" class="flex items-center gap-2">
+                            <x-heroicon-o-user-circle class="w-5 h-5" />
+                            <span>Mi Perfil</span>
+                        </x-dropdown-link>
+
+                        @if (Laravel\Jetstream\Jetstream::hasApiFeatures())
+                            <x-dropdown-link href="{{ route('api-tokens.index') }}" class="flex items-center gap-2">
+                                <x-heroicon-o-key class="w-5 h-5" />
+                                <span>API Tokens</span>
+                            </x-dropdown-link>
+                        @endif
+
+                        <div class="border-t border-gray-200 dark:border-gray-700 my-1"></div>
+
+                        <form method="POST" action="{{ route('logout') }}" x-data>
+                            @csrf
+                            <x-dropdown-link href="{{ route('logout') }}" @click.prevent="$root.submit();" class="flex items-center gap-2">
+                                <x-heroicon-o-arrow-right-on-rectangle class="w-5 h-5" />
+                                <span>Cerrar sesión</span>
+                            </x-dropdown-link>
+                        </form>
+                    </x-slot>
+                </x-dropdown>
+            </div>
+
+            {{-- Hamburguesa Mobile --}}
+            <div class="sm:hidden">
+                <button @click="open = !open"
+                        aria-label="Menú"
+                        aria-expanded="false"
+                        class="p-2 text-gray-400 dark:text-gray-300 hover:text-gray-600 dark:hover:text-white focus:outline-none transition">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path :class="{ 'hidden': open, 'inline-flex': !open }" class="inline-flex"
+                              stroke-linecap="round" stroke-linejoin="round"
+                              d="M4 6h16M4 12h16M4 18h16" />
+                        <path :class="{ 'hidden': !open, 'inline-flex': open }" class="hidden"
+                              stroke-linecap="round" stroke-linejoin="round"
+                              d="M6 18L18 6M6 6l12 12" />
                     </svg>
                 </button>
             </div>
         </div>
     </div>
 
-    <!-- Responsive Navigation Menu -->
-    <div :class="{'block': open, 'hidden': ! open}" class="hidden sm:hidden">
+    {{-- Menú Responsive --}}
+    <div :class="{ 'block': open, 'hidden': !open }" class="sm:hidden hidden">
         <div class="pt-2 pb-3 space-y-1">
-            <x-responsive-nav-link href="{{ route('dashboard') }}" :active="request()->routeIs('dashboard')">
-                {{ __('Dashboard') }}
+            <x-responsive-nav-link href="{{ route('dashboard') }}" :active="request()->routeIs('dashboard')" class="flex items-center gap-2">
+                <x-heroicon-o-home class="w-5 h-5" />
+                <span>Inicio</span>
             </x-responsive-nav-link>
+
+            <x-responsive-nav-link href="{{ route('ventas.index') }}" :active="request()->routeIs('ventas.*')" class="flex items-center gap-2">
+                <x-heroicon-o-shopping-cart class="w-5 h-5" />
+                <span>Ventas</span>
+            </x-responsive-nav-link>
+
+            <x-responsive-nav-link href="{{ route('inventario.index') }}" :active="request()->routeIs('inventario.*')" class="flex items-center gap-2">
+                <x-heroicon-o-cube class="w-5 h-5" />
+                <span>Inventario</span>
+            </x-responsive-nav-link>
+
+            <x-responsive-nav-link href="{{ route('reportes.index') }}" :active="request()->routeIs('reportes.*')" class="flex items-center gap-2">
+                <x-heroicon-o-chart-bar class="w-5 h-5" />
+                <span>Reportes</span>
+            </x-responsive-nav-link>
+
+            @if(Auth::user()->hasAccessTo('usuarios') || Auth::user()->role === 'jefe')
+                <x-responsive-nav-link href="{{ route('usuarios.index') }}" :active="request()->routeIs('usuarios.*')" class="flex items-center gap-2">
+                    <x-heroicon-o-users class="w-5 h-5" />
+                    <span>Usuarios</span>
+                </x-responsive-nav-link>
+            @endif
         </div>
 
-        <!-- Responsive Settings Options -->
-        <div class="pt-4 pb-1 border-t border-gray-200 dark:border-gray-600">
-            <div class="flex items-center px-4">
-                @if (Laravel\Jetstream\Jetstream::managesProfilePhotos())
-                    <div class="shrink-0 me-3">
-                        <img class="size-10 rounded-full object-cover" src="{{ Auth::user()->profile_photo_url }}" alt="{{ Auth::user()->name }}" />
-                    </div>
-                @endif
-
-                <div>
-                    <div class="font-medium text-base text-gray-800 dark:text-gray-200">{{ Auth::user()->name }}</div>
-                    <div class="font-medium text-sm text-gray-500">{{ Auth::user()->email }}</div>
+        <div class="pt-4 pb-1 border-t border-gray-200 dark:border-gray-700">
+            <div class="flex items-center px-4 py-2">
+                <div class="h-10 w-10 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-gray-600 dark:text-gray-300 font-medium text-lg">
+                    {{ substr(Auth::user()->name, 0, 1) }}
+                </div>
+                <div class="ml-3">
+                    <div class="font-medium text-base text-gray-800 dark:text-white">{{ Auth::user()->name }}</div>
+                    <div class="font-medium text-sm text-gray-500 dark:text-gray-400">{{ Auth::user()->email }}</div>
                 </div>
             </div>
 
             <div class="mt-3 space-y-1">
-                <!-- Account Management -->
-                <x-responsive-nav-link href="{{ route('profile.show') }}" :active="request()->routeIs('profile.show')">
-                    {{ __('Profile') }}
+                <x-responsive-nav-link href="{{ route('profile.show') }}" class="flex items-center gap-2">
+                    <x-heroicon-o-user-circle class="w-5 h-5" />
+                    <span>Mi Perfil</span>
                 </x-responsive-nav-link>
 
                 @if (Laravel\Jetstream\Jetstream::hasApiFeatures())
-                    <x-responsive-nav-link href="{{ route('api-tokens.index') }}" :active="request()->routeIs('api-tokens.index')">
-                        {{ __('API Tokens') }}
+                    <x-responsive-nav-link href="{{ route('api-tokens.index') }}" class="flex items-center gap-2">
+                        <x-heroicon-o-key class="w-5 h-5" />
+                        <span>API Tokens</span>
                     </x-responsive-nav-link>
                 @endif
 
-                <!-- Authentication -->
                 <form method="POST" action="{{ route('logout') }}" x-data>
                     @csrf
-
-                    <x-responsive-nav-link href="{{ route('logout') }}"
-                                   @click.prevent="$root.submit();">
-                        {{ __('Log Out') }}
+                    <x-responsive-nav-link href="{{ route('logout') }}" @click.prevent="$root.submit();" class="flex items-center gap-2">
+                        <x-heroicon-o-arrow-right-on-rectangle class="w-5 h-5" />
+                        <span>Cerrar sesión</span>
                     </x-responsive-nav-link>
                 </form>
 
-                <!-- Team Management -->
-                @if (Laravel\Jetstream\Jetstream::hasTeamFeatures())
-                    <div class="border-t border-gray-200 dark:border-gray-600"></div>
-
-                    <div class="block px-4 py-2 text-xs text-gray-400">
-                        {{ __('Manage Team') }}
-                    </div>
-
-                    <!-- Team Settings -->
-                    <x-responsive-nav-link href="{{ route('teams.show', Auth::user()->currentTeam->id) }}" :active="request()->routeIs('teams.show')">
-                        {{ __('Team Settings') }}
-                    </x-responsive-nav-link>
-
-                    @can('create', Laravel\Jetstream\Jetstream::newTeamModel())
-                        <x-responsive-nav-link href="{{ route('teams.create') }}" :active="request()->routeIs('teams.create')">
-                            {{ __('Create New Team') }}
-                        </x-responsive-nav-link>
-                    @endcan
-
-                    <!-- Team Switcher -->
-                    @if (Auth::user()->allTeams()->count() > 1)
-                        <div class="border-t border-gray-200 dark:border-gray-600"></div>
-
-                        <div class="block px-4 py-2 text-xs text-gray-400">
-                            {{ __('Switch Teams') }}
-                        </div>
-
-                        @foreach (Auth::user()->allTeams() as $team)
-                            <x-switchable-team :team="$team" component="responsive-nav-link" />
-                        @endforeach
-                    @endif
-                @endif
+                {{-- Toggle modo oscuro en mobile --}}
+                <div class="px-4 pt-2">
+                    <button
+                        @click="
+                            const actual = document.documentElement.classList.contains('dark') ? 'oscuro' : 'claro';
+                            const nuevo = actual === 'oscuro' ? 'claro' : 'oscuro';
+                            localStorage.setItem('modo', nuevo);
+                            document.documentElement.classList.toggle('dark');
+                        "
+                        class="w-full flex items-center justify-center gap-2 text-sm text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-md px-4 py-2 transition"
+                    >
+                        <x-heroicon-o-sun class="w-5 h-5 hidden dark:block" />
+                        <x-heroicon-o-moon class="w-5 h-5 block dark:hidden" />
+                        <span x-text="document.documentElement.classList.contains('dark') ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'"></span>
+                    </button>
+                </div>
             </div>
         </div>
     </div>

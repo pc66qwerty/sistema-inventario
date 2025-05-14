@@ -2,7 +2,7 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
+use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -13,8 +13,6 @@ use Laravel\Sanctum\HasApiTokens;
 class User extends Authenticatable
 {
     use HasApiTokens;
-
-    /** @use HasFactory<\Database\Factories\UserFactory> */
     use HasFactory;
     use HasProfilePhoto;
     use Notifiable;
@@ -29,6 +27,10 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'role',
+        'active',
+        'last_login_at',
+        'last_active_at'
     ];
 
     /**
@@ -44,6 +46,18 @@ class User extends Authenticatable
     ];
 
     /**
+     * The attributes that should be cast.
+     *
+     * @var array<string, string>
+     */
+    protected $casts = [
+        'email_verified_at' => 'datetime',
+        'last_login_at' => 'datetime',
+        'last_active_at' => 'datetime',
+        'active' => 'boolean'
+    ];
+
+    /**
      * The accessors to append to the model's array form.
      *
      * @var array<int, string>
@@ -53,15 +67,48 @@ class User extends Authenticatable
     ];
 
     /**
-     * Get the attributes that should be cast.
+     * Verifica si el usuario tiene acceso a una funcionalidad específica
      *
-     * @return array<string, string>
+     * @param string $module
+     * @return bool
      */
-    protected function casts(): array
+    public function hasAccessTo($module)
     {
-        return [
-            'email_verified_at' => 'datetime',
-            'password' => 'hashed',
+        // El rol jefe tiene acceso a todo
+        if ($this->role === 'jefe') {
+            return true;
+        }
+
+        // Definir los permisos según el rol
+        $permissions = [
+            'inventario' => ['inventario'],
+            'vendedor' => ['ventas'],
+            // Agregar más roles y sus permisos si es necesario
         ];
+
+        // Verificar si el rol del usuario tiene permiso para el módulo
+        return isset($permissions[$this->role]) && in_array($module, $permissions[$this->role]);
+    }
+
+    /**
+     * Actualiza la última vez que el usuario inició sesión
+     *
+     * @return void
+     */
+    public function updateLastLogin()
+    {
+        $this->last_login_at = now();
+        $this->save();
+    }
+
+    /**
+     * Actualiza la última vez que el usuario estuvo activo
+     *
+     * @return void
+     */
+    public function updateLastActive()
+    {
+        $this->last_active_at = now();
+        $this->save();
     }
 }
