@@ -13,12 +13,31 @@
             Ventas Registradas
         </h1>
 
-        <button @click="openModal()"
+        <a href="{{ route('ventas.create') }}"
             class="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg shadow transition">
             <x-heroicon-o-plus class="w-5 h-5" />
             Nueva Venta
-        </button>
+        </a>
     </div>
+
+    {{-- Mensajes de éxito o error --}}
+    @if (session('success'))
+        <div class="bg-green-50 dark:bg-green-900/20 border-l-4 border-green-500 p-4 rounded-md">
+            <div class="flex items-center">
+                <x-heroicon-o-check-circle class="w-5 h-5 text-green-500 mr-2" />
+                <span class="font-medium text-green-700 dark:text-green-400">{{ session('success') }}</span>
+            </div>
+        </div>
+    @endif
+
+    @if (session('error'))
+        <div class="bg-red-50 dark:bg-red-900/20 border-l-4 border-red-500 p-4 rounded-md">
+            <div class="flex items-center">
+                <x-heroicon-o-exclamation-triangle class="w-5 h-5 text-red-500 mr-2" />
+                <span class="font-medium text-red-700 dark:text-red-400">{{ session('error') }}</span>
+            </div>
+        </div>
+    @endif
 
     {{-- Tabla --}}
     <div class="bg-white dark:bg-gray-800 shadow-xl rounded-xl overflow-hidden">
@@ -43,9 +62,11 @@
                             <td class="px-6 py-3 text-gray-800 dark:text-gray-100">Q {{ number_format($venta->detalles->sum('total'), 2) }}</td>
                             <td class="px-6 py-3 text-gray-800 dark:text-gray-100">{{ $venta->entregado_por }}</td>
                             <td class="px-6 py-3 text-right">
-                                <a href="#" class="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 transition" title="Ver Detalle">
+                                <button @click="verDetalle({{ $venta->id }})" 
+                                    class="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 transition" 
+                                    title="Ver Detalle">
                                     <x-heroicon-o-eye class="w-5 h-5" />
-                                </a>
+                                </button>
                             </td>
                         </tr>
                     @empty
@@ -58,12 +79,17 @@
                 </tbody>
             </table>
         </div>
+        
+        {{-- Paginación --}}
+        <div class="px-6 py-3">
+            {{ $ventas->links() }}
+        </div>
     </div>
 
-    {{-- Modal --}}
-    <div x-show="modal" x-cloak 
+    {{-- Modal de detalle de venta --}}
+    <div x-show="modalDetalle" x-cloak 
          class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
-         @keydown.escape.window="closeModal()"
+         @keydown.escape.window="cerrarModalDetalle()"
          x-transition:enter="transition ease-out duration-300"
          x-transition:enter-start="opacity-0"
          x-transition:enter-end="opacity-100"
@@ -71,18 +97,18 @@
          x-transition:leave-start="opacity-100"
          x-transition:leave-end="opacity-0">
          
-        <div x-show="modal" 
+        <div x-show="modalDetalle" 
              x-transition:enter="transition ease-out duration-300"
              x-transition:enter-start="opacity-0 transform scale-95"
              x-transition:enter-end="opacity-100 transform scale-100"
              x-transition:leave="transition ease-in duration-200"
              x-transition:leave-start="opacity-100 transform scale-100"
              x-transition:leave-end="opacity-0 transform scale-95"
-             @click.away="closeModal()"
-             class="relative w-full max-w-5xl mx-auto bg-white dark:bg-gray-800 rounded-xl shadow-2xl overflow-y-auto max-h-[90vh] p-6 space-y-6">
+             @click.away="cerrarModalDetalle()"
+             class="relative w-full max-w-4xl mx-auto bg-white dark:bg-gray-800 rounded-xl shadow-2xl overflow-y-auto max-h-[90vh] p-6 space-y-6">
 
             {{-- Botón cerrar --}}
-            <button @click="closeModal()"
+            <button @click="cerrarModalDetalle()"
                     class="absolute top-4 right-4 text-gray-500 dark:text-gray-400 hover:text-red-600 transition">
                 <x-heroicon-o-x-mark class="w-6 h-6" />
             </button>
@@ -90,185 +116,104 @@
             {{-- Título --}}
             <h2 class="text-xl font-semibold text-gray-900 dark:text-white flex items-center gap-2">
                 <x-heroicon-o-document-text class="w-6 h-6 text-blue-500" />
-                Registrar Nueva Venta
+                Detalle de Venta <span x-text="detalleVenta.boleta_numero" class="ml-2"></span>
             </h2>
 
-            {{-- Formulario --}}
-            <form id="formVenta" @submit.prevent="submitForm" method="POST" action="{{ route('ventas.store') }}">
-                @csrf
+            {{-- Spinner de carga --}}
+            <div x-show="cargando" class="flex justify-center py-8">
+                <svg class="animate-spin h-10 w-10 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+            </div>
 
-                {{-- Datos principales --}}
-                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mb-6">
+            {{-- Contenido del detalle --}}
+            <div x-show="!cargando">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                     <div>
-                        <label for="boleta_numero" class="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">N° Boleta</label>
-                        <input id="boleta_numero" name="boleta_numero" type="text" placeholder="N° Boleta" 
-                               class="w-full rounded-lg border border-gray-300 dark:border-gray-600 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm transition-colors" required>
+                        <h3 class="text-sm font-medium text-gray-500 dark:text-gray-400">Información General</h3>
+                        <div class="mt-2 space-y-2">
+                            <p class="flex justify-between">
+                                <span class="text-gray-600 dark:text-gray-400">Fecha:</span> 
+                                <span x-text="formatearFecha(detalleVenta.fecha)" class="font-medium text-gray-900 dark:text-white"></span>
+                            </p>
+                            <p class="flex justify-between">
+                                <span class="text-gray-600 dark:text-gray-400">Cliente:</span> 
+                                <span x-text="detalleVenta.cliente" class="font-medium text-gray-900 dark:text-white"></span>
+                            </p>
+                            <p class="flex justify-between">
+                                <span class="text-gray-600 dark:text-gray-400">Documento:</span> 
+                                <span x-text="detalleVenta.cliente_documento || '-'" class="font-medium text-gray-900 dark:text-white"></span>
+                            </p>
+                            <p class="flex justify-between">
+                                <span class="text-gray-600 dark:text-gray-400">Teléfono:</span> 
+                                <span x-text="detalleVenta.cliente_telefono || '-'" class="font-medium text-gray-900 dark:text-white"></span>
+                            </p>
+                        </div>
                     </div>
+                    
                     <div>
-                        <label for="fecha" class="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">Fecha</label>
-                        <input id="fecha" name="fecha" type="date" value="{{ now()->format('Y-m-d') }}" 
-                               class="w-full rounded-lg border border-gray-300 dark:border-gray-600 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm transition-colors" required>
-                    </div>
-                    <div class="sm:col-span-2 md:col-span-1">
-                        <label for="cliente" class="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">Cliente</label>
-                        <input id="cliente" name="cliente" type="text" placeholder="Nombre del cliente" 
-                               class="w-full rounded-lg border border-gray-300 dark:border-gray-600 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm transition-colors" required>
-                    </div>
-                </div>
-
-                {{-- Detalle productos --}}
-                <div x-data="productosManager()" x-init="init()" class="mb-6">
-
-                    <h3 class="text-lg font-medium text-gray-900 dark:text-white flex items-center gap-2 mb-4">
-                        <x-heroicon-o-cube class="w-5 h-5 text-green-500" /> Detalle de Productos
-                    </h3>
-
-                    <!-- Cabeceras de tabla - Solo visibles en pantallas medianas y grandes -->
-                    <div class="hidden md:grid md:grid-cols-8 gap-3 mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">
-                        <div class="col-span-2">Descripción</div>
-                        <div>Tipo árbol</div>
-                        <div>Medida</div>
-                        <div>Unidad</div>
-                        <div>Cantidad</div>
-                        <div>Precio</div>
-                        <div class="text-center">Acciones</div>
-                    </div>
-
-                    <template x-for="(item, index) in items" :key="index">
-                        <!-- Vista escritorio -->
-                        <div class="hidden md:grid md:grid-cols-8 gap-3 mb-3 items-center">
-                            <div class="col-span-2">
-                                <input x-model="item.descripcion" :name="'descripcion[]'" class="input-form" placeholder="Descripción" required>
-                            </div>
-                            <div>
-                                <input x-model="item.tipo_arbol" :name="'tipo_arbol[]'" class="input-form" placeholder="Tipo árbol" required>
-                            </div>
-                            <div>
-                                <input x-model="item.medida" :name="'medida[]'" class="input-form" placeholder="Medida" required>
-                            </div>
-                            <div>
-                                <input x-model="item.unidad" :name="'unidad[]'" class="input-form" placeholder="Unidad" required>
-                            </div>
-                            <div>
-                                <input x-model="item.cantidad" type="number" min="1" :name="'cantidad[]'" @input="calcularTotal(index)" class="input-form" placeholder="Cantidad" required>
-                            </div>
-                            <div>
-                                <input x-model="item.valor_unitario" type="number" step="0.01" min="0" :name="'valor_unitario[]'" @input="calcularTotal(index)" class="input-form" placeholder="Precio" required>
-                            </div>
-                            <div class="flex items-center justify-around">
-                                <span x-text="formatCurrency(item.total || 0)" class="font-medium text-gray-800 dark:text-gray-200"></span>
-                                <input type="hidden" x-model="item.total" :name="'total[]'" :value="item.total">
-                                
-                                <button type="button"
-                                        @click="removerProducto(index)"
-                                        :disabled="items.length === 1"
-                                        class="bg-red-500 hover:bg-red-600 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-full p-1 transition"
-                                        title="Eliminar producto">
-                                    <x-heroicon-o-trash class="w-4 h-4" />
-                                </button>
-                            </div>
-                        </div>
-                        
-                        <!-- Vista móvil -->
-                        <div class="md:hidden mb-6 bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
-                            <div class="flex justify-between items-center mb-3">
-                                <span class="font-medium text-gray-700 dark:text-gray-200">Producto #<span x-text="index + 1"></span></span>
-                                <button type="button"
-                                    @click="removerProducto(index)"
-                                    :disabled="items.length === 1"
-                                    class="bg-red-500 hover:bg-red-600 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-full p-1 transition"
-                                    title="Eliminar producto">
-                                    <x-heroicon-o-trash class="w-4 h-4" />
-                                </button>
-                            </div>
-                            
-                            <div class="space-y-3">
-                                <div>
-                                    <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Descripción</label>
-                                    <input x-model="item.descripcion" :name="'descripcion[]'" class="input-form" placeholder="Descripción" required>
-                                </div>
-                                
-                                <div class="grid grid-cols-2 gap-2">
-                                    <div>
-                                        <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Tipo árbol</label>
-                                        <input x-model="item.tipo_arbol" :name="'tipo_arbol[]'" class="input-form" placeholder="Tipo árbol" required>
-                                    </div>
-                                    <div>
-                                        <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Medida</label>
-                                        <input x-model="item.medida" :name="'medida[]'" class="input-form" placeholder="Medida" required>
-                                    </div>
-                                </div>
-                                
-                                <div class="grid grid-cols-2 gap-2">
-                                    <div>
-                                        <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Unidad</label>
-                                        <input x-model="item.unidad" :name="'unidad[]'" class="input-form" placeholder="Unidad" required>
-                                    </div>
-                                    <div>
-                                        <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Cantidad</label>
-                                        <input x-model="item.cantidad" type="number" min="1" :name="'cantidad[]'" @input="calcularTotal(index)" class="input-form" placeholder="Cantidad" required>
-                                    </div>
-                                </div>
-                                
-                                <div class="grid grid-cols-2 gap-2">
-                                    <div>
-                                        <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Precio</label>
-                                        <input x-model="item.valor_unitario" type="number" step="0.01" min="0" :name="'valor_unitario[]'" @input="calcularTotal(index)" class="input-form" placeholder="Precio" required>
-                                    </div>
-                                    <div>
-                                        <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Total</label>
-                                        <div class="input-form bg-gray-100 dark:bg-gray-600 flex items-center" x-text="formatCurrency(item.total || 0)"></div>
-                                        <input type="hidden" x-model="item.total" :name="'total[]'" :value="item.total">
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </template>
-
-                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 sm:gap-0 mt-4">
-                        <button type="button" @click="agregarProducto()"
-                                class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 text-sm rounded-lg shadow inline-flex items-center gap-2 transition w-full sm:w-auto justify-center sm:justify-start">
-                            <x-heroicon-o-plus class="w-4 h-4" /> Agregar Producto
-                        </button>
-                        
-                        <div class="text-right w-full sm:w-auto">
-                            <span class="text-sm text-gray-600 dark:text-gray-400">Total Venta:</span>
-                            <span x-text="formatCurrency(calcularTotalVenta())" class="ml-2 font-bold text-lg text-gray-900 dark:text-white"></span>
+                        <h3 class="text-sm font-medium text-gray-500 dark:text-gray-400">Datos de Entrega</h3>
+                        <div class="mt-2 space-y-2">
+                            <p class="flex justify-between">
+                                <span class="text-gray-600 dark:text-gray-400">Vendedor:</span> 
+                                <span x-text="detalleVenta.user ? detalleVenta.user.name : '-'" class="font-medium text-gray-900 dark:text-white"></span>
+                            </p>
+                            <p class="flex justify-between">
+                                <span class="text-gray-600 dark:text-gray-400">Entregado por:</span> 
+                                <span x-text="detalleVenta.entregado_por || '-'" class="font-medium text-gray-900 dark:text-white"></span>
+                            </p>
+                            <p class="flex justify-between">
+                                <span class="text-gray-600 dark:text-gray-400">Fecha registro:</span> 
+                                <span x-text="formatearFechaCompleta(detalleVenta.created_at)" class="font-medium text-gray-900 dark:text-white"></span>
+                            </p>
+                            <p class="flex justify-between">
+                                <span class="text-gray-600 dark:text-gray-400">Observaciones:</span> 
+                                <span x-text="detalleVenta.observaciones || 'Sin observaciones'" class="font-medium text-gray-900 dark:text-white"></span>
+                            </p>
                         </div>
                     </div>
                 </div>
 
-                {{-- Datos adicionales --}}
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
-                    <div>
-                        <label for="entregado_por" class="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">Entregado por</label>
-                        <input id="entregado_por" name="entregado_por" type="text" placeholder="Nombre de quien entrega" 
-                               class="w-full rounded-lg border border-gray-300 dark:border-gray-600 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm transition-colors">
-                    </div>
-                    <div>
-                        <label for="observaciones" class="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">Observaciones</label>
-                        <input id="observaciones" name="observaciones" type="text" placeholder="Observaciones adicionales" 
-                               class="w-full rounded-lg border border-gray-300 dark:border-gray-600 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm transition-colors">
-                    </div>
-                </div>
+                <h3 class="text-lg font-medium text-gray-900 dark:text-white flex items-center gap-2 mb-3">
+                    <x-heroicon-o-list-bullet class="w-5 h-5 text-green-500" /> Detalle de Productos
+                </h3>
 
-                {{-- Botones --}}
-                <div class="flex flex-col sm:flex-row justify-end gap-3 mt-6">
-                    <button type="submit"
-                            class="bg-green-600 hover:bg-green-700 text-white px-5 py-2 rounded-lg shadow inline-flex items-center justify-center gap-2 transition-colors">
-                        <x-heroicon-o-check-circle class="w-5 h-5" />
-                        Guardar
-                    </button>
-                    <button type="button" @click="resetearFormulario()"
-                            class="bg-yellow-500 hover:bg-yellow-600 text-white px-5 py-2 rounded-lg shadow transition-colors">
-                        Limpiar
-                    </button>
-                    <button type="button" @click="closeModal()"
-                            class="px-5 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors">
-                        Cancelar
-                    </button>
+                <div class="overflow-x-auto bg-gray-50 dark:bg-gray-700 rounded-lg">
+                    <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-600">
+                        <thead>
+                            <tr>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Descripción</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Tipo Árbol</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Medida</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Unidad</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Cantidad</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Precio Unit.</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Total</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                            <template x-for="(detalle, index) in detalleVenta.detalles" :key="index">
+                                <tr>
+                                    <td class="px-4 py-3 text-sm text-gray-900 dark:text-gray-100" x-text="detalle.descripcion"></td>
+                                    <td class="px-4 py-3 text-sm text-gray-900 dark:text-gray-100" x-text="detalle.tipo_arbol"></td>
+                                    <td class="px-4 py-3 text-sm text-gray-900 dark:text-gray-100" x-text="detalle.medida"></td>
+                                    <td class="px-4 py-3 text-sm text-gray-900 dark:text-gray-100" x-text="detalle.unidad"></td>
+                                    <td class="px-4 py-3 text-sm text-gray-900 dark:text-gray-100" x-text="detalle.cantidad"></td>
+                                    <td class="px-4 py-3 text-sm text-gray-900 dark:text-gray-100" x-text="'Q ' + parseFloat(detalle.valor_unitario).toFixed(2)"></td>
+                                    <td class="px-4 py-3 text-sm font-medium text-gray-900 dark:text-gray-100" x-text="'Q ' + parseFloat(detalle.total).toFixed(2)"></td>
+                                </tr>
+                            </template>
+                        </tbody>
+                        <tfoot class="bg-gray-50 dark:bg-gray-700">
+                            <tr>
+                                <td colspan="6" class="px-4 py-3 text-right text-sm font-medium text-gray-700 dark:text-gray-300">Total:</td>
+                                <td class="px-4 py-3 text-sm font-bold text-gray-900 dark:text-white" x-text="'Q ' + calcularTotalDetalle()"></td>
+                            </tr>
+                        </tfoot>
+                    </table>
                 </div>
-            </form>
+            </div>
         </div>
     </div>
 
@@ -317,11 +262,6 @@
         color: #d1d5db;
     }
 
-    /* Asegurar que los calendarios se vean bien en modo oscuro */
-    html.dark input[type="date"]::-webkit-calendar-picker-indicator {
-        filter: invert(1);
-    }
-
     /* Ocultar elementos con Alpine.js */
     [x-cloak] {
         display: none !important;
@@ -333,93 +273,57 @@
 <script>
     function ventasApp() {
         return {
-            modal: false,
+            modalDetalle: false,
+            cargando: false,
+            detalleVenta: {},
             
-            openModal() {
-                this.modal = true;
+            verDetalle(id) {
+                this.modalDetalle = true;
+                this.cargando = true;
                 document.body.classList.add('overflow-hidden');
-
+                
+                // Cargar los datos de la venta mediante AJAX
+                fetch(`/ventas/${id}`, {
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    this.detalleVenta = data;
+                    this.cargando = false;
+                })
+                .catch(error => {
+                    console.error('Error cargando detalles:', error);
+                    this.cargando = false;
+                });
             },
             
-            closeModal() {
-                this.modal = false;
+            cerrarModalDetalle() {
+                this.modalDetalle = false;
                 document.body.classList.remove('overflow-hidden');
             },
             
-            resetearFormulario() {
-                document.getElementById('formVenta').reset();
-                // Reiniciar los productos
-                window.dispatchEvent(new CustomEvent('reset-productos'));
+            formatearFecha(fecha) {
+                if (!fecha) return '-';
+                const date = new Date(fecha);
+                return date.toLocaleDateString('es-GT');
             },
             
-            submitForm() {
-                // Aquí puedes validar el formulario antes de enviarlo
-                // También podrías usar AJAX para enviar los datos si lo prefieres
-                document.getElementById('formVenta').submit();
-            }
-        }
-    }
-    
-    function productosManager() {
-        return {
-            items: [{
-                descripcion: '',
-                tipo_arbol: '',
-                medida: '',
-                unidad: '',
-                cantidad: 1,
-                valor_unitario: 0,
-                total: 0
-            }],
-            
-            init() {
-                window.addEventListener('reset-productos', () => {
-                    this.items = [{
-                        descripcion: '',
-                        tipo_arbol: '',
-                        medida: '',
-                        unidad: '',
-                        cantidad: 1,
-                        valor_unitario: 0,
-                        total: 0
-                    }];
-                });
+            formatearFechaCompleta(fecha) {
+                if (!fecha) return '-';
+                const date = new Date(fecha);
+                return date.toLocaleDateString('es-GT') + ' ' + date.toLocaleTimeString('es-GT');
             },
             
-            agregarProducto() {
-                this.items.push({
-                    descripcion: '',
-                    tipo_arbol: '',
-                    medida: '',
-                    unidad: '',
-                    cantidad: 1,
-                    valor_unitario: 0,
-                    total: 0
-                });
-            },
-            
-            removerProducto(index) {
-                if (this.items.length > 1) {
-                    this.items.splice(index, 1);
-                }
-            },
-            
-            calcularTotal(index) {
-                const item = this.items[index];
-                const cantidad = parseFloat(item.cantidad) || 0;
-                const precio = parseFloat(item.valor_unitario) || 0;
-                this.items[index].total = cantidad * precio;
-                return this.items[index].total;
-            },
-            
-            calcularTotalVenta() {
-                return this.items.reduce((sum, item) => {
-                    return sum + (parseFloat(item.total) || 0);
+            calcularTotalDetalle() {
+                if (!this.detalleVenta.detalles) return '0.00';
+                
+                const total = this.detalleVenta.detalles.reduce((sum, detalle) => {
+                    return sum + parseFloat(detalle.total || 0);
                 }, 0);
-            },
-            
-            formatCurrency(value) {
-                return 'Q ' + parseFloat(value).toFixed(2).replace(/\d(?=(\d{3})+\.)/g, '$&,');
+                
+                return total.toFixed(2);
             }
         }
     }

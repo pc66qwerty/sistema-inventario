@@ -5,6 +5,7 @@ use App\Http\Controllers\VentaController;
 use App\Http\Controllers\InventarioController;
 use App\Http\Controllers\UsuarioController;
 use App\Http\Controllers\ReporteController;
+use App\Http\Controllers\ClienteController; // ✅ Agregado
 
 Route::middleware([
     'auth:sanctum',
@@ -21,11 +22,22 @@ Route::middleware([
     Route::middleware('modulo:ventas')->group(function () {
         Route::get('/ventas', [VentaController::class, 'index'])->name('ventas.index');
         Route::get('/ventas/create', [VentaController::class, 'create'])->name('ventas.create');
+
+        // Ruta para autocompletado de clientes
+        Route::get('/ventas/buscar-clientes', [VentaController::class, 'buscarClientes'])
+            ->name('ventas.buscar-clientes');
+
         Route::post('/ventas', [VentaController::class, 'store'])->name('ventas.store');
+
+        // Mostrar detalles de una venta (para modal)
+        Route::get('/ventas/{venta}', [VentaController::class, 'show'])->name('ventas.show');
     });
 
-    // 📦 Módulo de inventario (inventario y jefe)
+    // 👤 Módulo de clientes (asociado a inventario)
     Route::middleware('modulo:inventario')->group(function () {
+        Route::resource('clientes', ClienteController::class);
+
+        // 📦 Módulo de inventario (inventario y jefe)
         Route::get('/inventario', [InventarioController::class, 'index'])->name('inventario.index');
         Route::get('/inventario/create', [InventarioController::class, 'create'])->name('inventario.create');
         Route::post('/inventario', [InventarioController::class, 'store'])->name('inventario.store');
@@ -40,22 +52,20 @@ Route::middleware([
         Route::get('/reportes/pdf', [ReporteController::class, 'exportarPDF'])->name('reportes.pdf');
     });
 
-    // 👤 Módulo de usuarios (solo jefe)
+    // 👥 Módulo de usuarios (solo jefe)
     Route::middleware('modulo:usuarios')->group(function () {
-        // Rutas existentes
         Route::get('/usuarios', [UsuarioController::class, 'index'])->name('usuarios.index');
         Route::get('/usuarios/crear', [UsuarioController::class, 'create'])->name('usuarios.create');
         Route::post('/usuarios', [UsuarioController::class, 'store'])->name('usuarios.store');
-        
-        // Nuevas rutas para edición, actualización y eliminación
+
         Route::get('/usuarios/{usuario}/edit', [UsuarioController::class, 'edit'])->name('usuarios.edit');
         Route::put('/usuarios/{usuario}', [UsuarioController::class, 'update'])->name('usuarios.update');
         Route::delete('/usuarios/{usuario}', [UsuarioController::class, 'destroy'])->name('usuarios.destroy');
-        
-        // Rutas adicionales para gestión de usuarios
+
         Route::post('/usuarios/{usuario}/logout-everywhere', [UsuarioController::class, 'logoutEverywhere'])
             ->name('usuarios.logout-everywhere');
         Route::post('/usuarios/password/reset-link', [UsuarioController::class, 'sendResetLink'])
             ->name('usuarios.password.email');
     });
+
 });

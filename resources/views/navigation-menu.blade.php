@@ -7,39 +7,44 @@
             <div class="flex items-center">
                 <a href="{{ route('dashboard') }}" class="flex items-center gap-2">
                     <x-application-mark class="block h-9 w-auto" />
-                    <span class="font-semibold text-gray-900 dark:text-white text-lg hidden md:block">SisMaderera</span>
+                    <span class="font-semibold text-gray-900 dark:text-white text-lg hidden md:block">Contrataciones Rodas</span>
                 </a>
             </div>
 
-            {{-- Links Principales --}}
-            <div class="hidden space-x-4 md:flex md:ml-6">
-                <x-nav-link href="{{ route('dashboard') }}" :active="request()->routeIs('dashboard')">
-                    <x-heroicon-o-home class="w-5 h-5 me-1" />
-                    <span>Inicio</span>
-                </x-nav-link>
+           {{-- Links Principales --}}
+<div class="hidden space-x-4 md:flex md:ml-6">
+    <x-nav-link href="{{ route('dashboard') }}" :active="request()->routeIs('dashboard')">
+        <x-heroicon-o-home class="w-5 h-5 me-1" />
+        <span>Inicio</span>
+    </x-nav-link>
 
-                <x-nav-link href="{{ route('ventas.index') }}" :active="request()->routeIs('ventas.*')">
-                    <x-heroicon-o-shopping-cart class="w-5 h-5 me-1" />
-                    <span>Ventas</span>
-                </x-nav-link>
+    <x-nav-link href="{{ route('ventas.index') }}" :active="request()->routeIs('ventas.*')">
+        <x-heroicon-o-shopping-cart class="w-5 h-5 me-1" />
+        <span>Ventas</span>
+    </x-nav-link>
 
-                <x-nav-link href="{{ route('inventario.index') }}" :active="request()->routeIs('inventario.*')">
-                    <x-heroicon-o-cube class="w-5 h-5 me-1" />
-                    <span>Inventario</span>
-                </x-nav-link>
+    <x-nav-link href="{{ route('inventario.index') }}" :active="request()->routeIs('inventario.*')">
+        <x-heroicon-o-cube class="w-5 h-5 me-1" />
+        <span>Inventario</span>
+    </x-nav-link>
 
-                <x-nav-link href="{{ route('reportes.index') }}" :active="request()->routeIs('reportes.*')">
-                    <x-heroicon-o-chart-bar class="w-5 h-5 me-1" />
-                    <span>Reportes</span>
-                </x-nav-link>
+    <x-nav-link href="{{ route('reportes.index') }}" :active="request()->routeIs('reportes.*')">
+        <x-heroicon-o-chart-bar class="w-5 h-5 me-1" />
+        <span>Reportes</span>
+    </x-nav-link>
 
-                @if(Auth::user()->hasAccessTo('usuarios') || Auth::user()->role === 'jefe')
-                    <x-nav-link href="{{ route('usuarios.index') }}" :active="request()->routeIs('usuarios.*')">
-                        <x-heroicon-o-users class="w-5 h-5 me-1" />
-                        <span>Usuarios</span>
-                    </x-nav-link>
-                @endif
-            </div>
+    <x-nav-link href="{{ route('clientes.index') }}" :active="request()->routeIs('clientes.*')">
+        <x-heroicon-o-identification class="w-5 h-5 me-1" />
+        <span>Clientes</span>
+    </x-nav-link>
+
+    @if(Auth::user()->hasAccessTo('usuarios') || Auth::user()->role === 'jefe')
+        <x-nav-link href="{{ route('usuarios.index') }}" :active="request()->routeIs('usuarios.*')">
+            <x-heroicon-o-user-group class="w-5 h-5 me-1" />
+            <span>Usuarios</span>
+        </x-nav-link>
+    @endif
+</div>
 
             {{-- Dark Mode + Usuario --}}
             <div class="hidden sm:flex sm:items-center gap-3">
@@ -142,10 +147,15 @@
                 <x-heroicon-o-chart-bar class="w-5 h-5" />
                 <span>Reportes</span>
             </x-responsive-nav-link>
+            
+            <x-responsive-nav-link href="{{ route('clientes.index') }}" :active="request()->routeIs('clientes.*')" class="flex items-center gap-2">
+                <x-heroicon-o-identification class="w-5 h-5" />
+                <span>Clientes</span>
+            </x-responsive-nav-link>
 
             @if(Auth::user()->hasAccessTo('usuarios') || Auth::user()->role === 'jefe')
                 <x-responsive-nav-link href="{{ route('usuarios.index') }}" :active="request()->routeIs('usuarios.*')" class="flex items-center gap-2">
-                    <x-heroicon-o-users class="w-5 h-5" />
+                    <x-heroicon-o-user-group class="w-5 h-5" />
                     <span>Usuarios</span>
                 </x-responsive-nav-link>
             @endif
